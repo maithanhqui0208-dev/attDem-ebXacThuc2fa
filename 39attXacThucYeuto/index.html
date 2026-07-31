@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Thử nghiệm 2FA Web</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+    .card { border: 1px solid #ccc; padding: 20px; max-width: 400px; border-radius: 8px; margin-bottom: 20px; }
+    input { padding: 8px; width: 80%; margin-bottom: 10px; }
+    button { padding: 8px 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+  </style>
+</head>
+<body>
+
+  <h2>Hệ Thống Xác Thực 2FA</h2>
+
+  <!-- Bước 1: Tạo & Quét mã QR -->
+  <div class="card">
+    <h3>1. Kích hoạt 2FA</h3>
+    <button onclick="generate2FA()">Tạo mã QR</button>
+    <div id="qrContainer" style="margin-top: 15px;"></div>
+  </div>
+
+  <!-- Bước 2: Xác nhận / Đăng nhập bằng mã OTP -->
+  <div class="card">
+    <h3>2. Nhập mã từ Google Authenticator</h3>
+    <input type="text" id="otpCode" placeholder="Nhập 6 chữ số (vđ: 123456)" maxlength="6">
+    <br>
+    <button onclick="verify2FA()">Xác thực OTP</button>
+    <p id="result"></p>
+  </div>
+
+  <script>
+    const USER_ID = "user_demo_123";
+
+    // 1. Gọi API Backend để lấy mã QR
+    async function generate2FA() {
+      const res = await fetch('/api/2fa/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: USER_ID, email: 'demo@example.com' })
+      });
+      const data = await res.json();
+      
+      // Hiển thị hình ảnh QR Code từ chuỗi Data URL trả về
+      document.getElementById('qrContainer').innerHTML = `
+        <p>Mở Google Authenticator và quét mã này:</p>
+        <img src="${data.qrCodeUrl}" alt="QR Code">
+      `;
+    }
+
+    // 2. Gửi mã OTP người dùng nhập lên Server kiểm tra
+    async function verify2FA() {
+      const code = document.getElementById('otpCode').value;
+      const res = await fetch('/api/2fa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: USER_ID, token: code })
+      });
+      const data = await res.json();
+      
+      const resultEl = document.getElementById('result');
+      if (data.success) {
+        resultEl.innerText = "✅ " + data.message;
+        resultEl.style.color = "green";
+      } else {
+        resultEl.innerText = "❌ " + data.error;
+        resultEl.style.color = "red";
+      }
+    }
+  </script>
+</body>
+</html>
